@@ -1,6 +1,7 @@
 package io.goorm.youtube.service;
 
 import io.goorm.youtube.vo.DefaultVO;
+import io.goorm.youtube.vo.domain.Admin;
 import io.goorm.youtube.vo.domain.Member;
 
 import java.io.IOException;
@@ -17,10 +18,12 @@ public interface MemberService {
 
     public boolean existsById(String seq);
 
+    public int resetPw(Member member);
+
     public int save(Member member);
 
     public int update(Member member);
 
-    public int updatePublishYn(Member member);
+    public int updateUseYn(Member member);
 
 }

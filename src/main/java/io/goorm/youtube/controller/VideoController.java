@@ -12,14 +12,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @Slf4j
 @Controller
@@ -38,6 +34,8 @@ public class VideoController {
 
         model.addAttribute("posts", videoService.findAll(defaultVO));
         model.addAttribute("title", "비디오-리스트" );
+        model.addAttribute("page", defaultVO.getPage());
+        model.addAttribute("totalPages", defaultVO.getTotalPages());
 
         return "video/list";
     }
@@ -117,14 +115,51 @@ public class VideoController {
 
     //수정
     @PostMapping("/videos/{videoSeq}")
-    public String  update(@ModelAttribute Video video, Model model, RedirectAttributes redirectAttributes) {
+    public String  update(@ModelAttribute Video video,
+                          @RequestParam("videoFile") MultipartFile videoFile,
+                          @RequestParam("videoThumnailFile") MultipartFile videoThumbnailFile,
+                          Model model, RedirectAttributes redirectAttributes) {
 
-        redirectAttributes.addAttribute("videoSeq", video.getVideoSeq());
-        redirectAttributes.addFlashAttribute("msg", "수정에 성공하였습니다.");
+        log.debug("update");
 
-        return "redirect:/videos/{videoSeq}";
+        try {
+            // 업로드된 파일 처리
+            String thumbnailPath = FileUploadUtil.uploadFile(videoThumbnailFile, "thumbnail");
+            String videoPath = FileUploadUtil.uploadFile(videoFile, "vod");
 
-        //return "redirect:/mgr/videos/" + video.getVideoSeq();
+            // 업로드된 파일 경로를 엔티티에 설정
+            video.setVideo(videoPath);
+            video.setVideoThumnail(thumbnailPath);
+
+            videoService.update(video);
+            model.addAttribute("msg", "비디오가 성공적으로 수정 되었습니다.");
+
+
+        } catch (Exception e) {
+            model.addAttribute("msg", "비디오 수정에 실패하였습니다.");
+            return "redirect:/videos/{videoSeq}"; // 예외 발생시 수정 폼으로
+        }
+
+        return "redirect:/";
     }
 
+    //사용여부 변경
+    @GetMapping("/videos/{videoSeq}/publishyn")
+    public String  updateUseYN(@PathVariable("videoSeq") Long videoSeq, Model model, RedirectAttributes redirectAttributes) {
+
+        Video video = videoService.find(videoSeq);
+
+        if (video.getPublishYn() == 0) {
+            video.setPublishYn(1);
+        } else {
+            video.setPublishYn(0);
+        }
+
+        videoService.updatePublishYn(video);
+
+        redirectAttributes.addAttribute("videoSeq", video.getVideoSeq());
+        redirectAttributes.addFlashAttribute("msg", "공개여부 수정에 성공하였습니다.");
+
+        return "redirect:/videos";
+    }
 }
